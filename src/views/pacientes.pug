@@ -568,9 +568,28 @@ html(lang='es')
                     const fechaStr = `${dia}/${mes}/${anio}`;
                     const horaInicio = ultimo.HoraInicio || '';
                     const horaFin = ultimo.HoraFin || '';
+                    // Obtener nombre del médico del último turno
+                    let medicoNombre = 'N/A';
+                    try {
+                      const idMedico = (ultimo.IdMedico && (ultimo.IdMedico._id || ultimo.IdMedico)) || ultimo.IdMedico;
+                      if (idMedico) {
+                        const respMedico = await fetch(`/api/medicos/${idMedico}`);
+                        const resultMedico = await respMedico.json();
+                        if (respMedico.ok && resultMedico.data) {
+                          medicoNombre = `${resultMedico.data.Nombre} ${resultMedico.data.Apellido}`;
+                        }
+                      }
+                    } catch (e) {
+                      console.error('Error al obtener médico del último turno:', e);
+                    }
+                    // Fallback si el turno ya trae objeto Médico embebido
+                    if (medicoNombre === 'N/A' && ultimo.IdMedico && ultimo.IdMedico.Nombre && ultimo.IdMedico.Apellido) {
+                      medicoNombre = `${ultimo.IdMedico.Nombre} ${ultimo.IdMedico.Apellido}`;
+                    }
                     ultimoTurnoHtml = `
                       <p><i class=\"fas fa-calendar-check\"></i> Último turno: ${fechaStr}</p>
                       <p><i class=\"fas fa-clock\"></i> Horario: ${horaInicio}${horaFin ? ' - ' + horaFin : ''}</p>
+                      <p><i class=\"fas fa-user-md\"></i> Médico: ${medicoNombre}</p>
                     `;
                   }
                 }

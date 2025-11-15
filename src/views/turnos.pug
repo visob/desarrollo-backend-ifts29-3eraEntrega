@@ -358,12 +358,13 @@ html(lang='es')
           h3
             i.fas.fa-search
             | Consultar Turnos
-          button.submit-button(onclick='getAllTurnos()') Ver Todos los Turnos
+          if user && user.role === 'Administrativo'
+            button.submit-button(onclick='getAllTurnos()') Ver Todos los Turnos
           .form-group(style='margin-top: 20px;')
             label(for='searchFecha') Buscar por Fecha:
             input(type='date' id='searchFecha' name='searchFecha')
             button.submit-button(onclick='getTurnosByFecha()') Buscar
-          if !user || user.role !== 'Paciente'
+          if user && user.role === 'Administrativo'
             .form-group(style='margin-top: 20px;')
               label(for='searchPaciente') Buscar por Paciente:
               select(id='searchPaciente' name='searchPaciente')
@@ -430,17 +431,24 @@ html(lang='es')
       let medicos = [];
       const currentUserRole = '#{user ? user.role : ''}';
       const currentPacienteId = '#{user && user.pacienteId ? user.pacienteId : ''}';
+      const currentMedicoId = '#{user && user.medicoId ? user.medicoId : ''}';
 
       // Cargar datos iniciales
-      window.onload = function() {
-        loadPacientes();
-        loadMedicos();
+      window.onload = async function() {
+        await loadPacientes();
+        await loadMedicos();
         setMinDateTime();
-        loadTurnosDropdown('updateTurnoSelect');
-        loadTurnosDropdown('deleteTurnoSelect');
+        // Solo el administrativo necesita los dropdowns de actualización/eliminación
+        if (currentUserRole === 'Administrativo') {
+          await loadTurnosDropdown('updateTurnoSelect');
+          await loadTurnosDropdown('deleteTurnoSelect');
+        }
         if (currentUserRole === 'Paciente' && currentPacienteId) {
           showForm('read');
-          getTurnosByPacienteId(currentPacienteId);
+          await getTurnosByPacienteId(currentPacienteId);
+        } else if (currentUserRole === 'Medico' && currentMedicoId) {
+          showForm('read');
+          await getTurnosByMedicoId(currentMedicoId);
         }
       };
 
@@ -497,6 +505,37 @@ html(lang='es')
         }
       }
 
+      // Helpers para asegurar datos cargados antes de renderizar
+      async function ensurePacientesLoaded() {
+        if (!Array.isArray(pacientes) || pacientes.length === 0) {
+          try {
+            const response = await fetch('/api/pacientes');
+            const result = await response.json();
+            if (response.ok) {
+              pacientes = result.data;
+              updatePacienteSelects();
+            }
+          } catch (error) {
+            console.error('Error cargando pacientes:', error);
+          }
+        }
+      }
+
+      async function ensureMedicosLoaded() {
+        if (!Array.isArray(medicos) || medicos.length === 0) {
+          try {
+            const response = await fetch('/api/medicos');
+            const result = await response.json();
+            if (response.ok) {
+              medicos = result.data;
+              updateMedicoSelects();
+            }
+          } catch (error) {
+            console.error('Error cargando médicos:', error);
+          }
+        }
+      }
+
       function updatePacienteSelects() {
         const selects = ['idPaciente', 'searchPaciente', 'updateIdPaciente'];
         selects.forEach(selectId => {
@@ -539,10 +578,20 @@ html(lang='es')
         });
       }
 
+      // Ocultar/mostrar secciones de creación/actualización/eliminación de turnos según rol
+      // Ya existe en HTML la condición para .actions; nos aseguramos que solo admin vea los formularios de create/update/delete activables
       function showForm(formType) {
         const forms = document.querySelectorAll('.form-section');
         forms.forEach(form => form.classList.remove('active'));
-        document.getElementById(formType + '-form').classList.add('active');
+        const target = document.getElementById(formType + '-form');
+        if (!target) return;
+        // Restricción por rol: solo Administrativo puede abrir create/update/delete
+        if (formType !== 'read' && currentUserRole !== 'Administrativo') {
+          showResult('read-result', 'Acción no permitida para tu rol. Usa "Consultar Turnos" para ver tus turnos.', false);
+          document.getElementById('read-form').classList.add('active');
+          return;
+        }
+        target.classList.add('active');
         const results = document.querySelectorAll('.result');
         results.forEach(result => {
           result.style.display = 'none';
@@ -597,16 +646,23 @@ html(lang='es')
         try {
           const response = await fetch('/api/turnos');
           const result = await response.json();
-          
-          // Agregamos al medico y paciente los nombres correspondientes
-          result.data.forEach(turno => {
+      
+          // Si no es administrativo, filtramos por el usuario actual
+          let data = Array.isArray(result.data) ? result.data : [];
+          if (currentUserRole === 'Paciente' && currentPacienteId) {
+            data = data.filter(t => (t.IdPaciente == currentPacienteId));
+          } else if (currentUserRole === 'Medico' && currentMedicoId) {
+            data = data.filter(t => (t.IdMedico == currentMedicoId));
+          }
+      
+          // Agregamos nombres
+          data.forEach(turno => {
             const medico = medicos.find(m => (m._id || m.IdMedico) == turno.IdMedico);
             const paciente = pacientes.find(p => (p._id || p.IdPaciente) == turno.IdPaciente);
             turno.Medico = medico ? medico.Nombre + ' ' + medico.Apellido : 'N/A';
             turno.Paciente = paciente ? paciente.Nombre + ' ' + paciente.Apellido : 'N/A';
           });
-
-          
+      
           if (response.ok) {
             let html = '<h4><i class="fas fa-clipboard-list"></i> Lista de Turnos:</h4><div class="cards-grid">';
             result.data.slice(0, 10).forEach(turno => {
@@ -679,7 +735,7 @@ html(lang='es')
         try {
           const response = await fetch('/api/turnos');
           const result = await response.json();
-
+      
           // Agregamos al medico y paciente los nombres correspondientes
           result.data.forEach(turno => {
             const medico = medicos.find(m => (m._id || m.IdMedico) == turno.IdMedico);
@@ -687,7 +743,7 @@ html(lang='es')
             turno.Medico = medico ? medico.Nombre + ' ' + medico.Apellido : 'N/A';
             turno.Paciente = paciente ? paciente.Nombre + ' ' + paciente.Apellido : 'N/A';
           });
-          
+      
           if (response.ok) {
             const select = document.getElementById(idSelect);
             select.innerHTML = '<option value="">Seleccionar turno...</option>';
@@ -745,11 +801,15 @@ html(lang='es')
 
       async function getTurnosByPacienteId(idPaciente) {
         try {
+          // Aseguramos tener médicos y pacientes cargados
+          await ensureMedicosLoaded();
+          await ensurePacientesLoaded();
+
           const response = await fetch(`/api/turnos/paciente/${idPaciente}`);
           const result = await response.json();
           if (response.ok) {
             const paciente = pacientes.find(p => (p._id || p.IdPaciente) == idPaciente);
-            let html = `<h4><i class="fas fa-user-injured"></i> Mis Turnos${paciente ? ' (' + paciente.Nombre + ' ' + paciente.Apellido + ')' : ''}:</h4><div class="cards-grid">`;
+            let html = `<h4><i class=\"fas fa-user-injured\"></i> Mis Turnos${paciente ? ' (' + paciente.Nombre + ' ' + paciente.Apellido + ')' : ''}:</h4><div class=\"cards-grid\">`;
             if (result.data.length === 0) {
               html += '<p>No hay turnos para tu cuenta.</p>';
             }
@@ -757,16 +817,7 @@ html(lang='es')
               const medico = medicos.find(m => (m._id || m.IdMedico) == turno.IdMedico);
               const medicoNombre = medico ? medico.Nombre + ' ' + medico.Apellido : 'N/A';
               const pacienteNombre = paciente ? paciente.Nombre + ' ' + paciente.Apellido : 'Paciente';
-              html += `<div class="card turno-card" onclick="selectTurnoCard(this)" data-fecha="${formatDate(turno.Fecha)}" data-hora-inicio="${turno.HoraInicio}" data-hora-fin="${turno.HoraFin}" data-paciente="${pacienteNombre}" data-medico="${medicoNombre}">
-                <div class="card-header">
-                  <i class="fas fa-calendar-check"></i>
-                  <div class="card-title">${formatDate(turno.Fecha)} ${turno.HoraInicio}-${turno.HoraFin}</div>
-                </div>
-                <div class="card-body">
-                  <p><i class="fas fa-user-injured"></i> Paciente: ${pacienteNombre}</p>
-                  <p><i class="fas fa-user-md"></i> Médico: ${medicoNombre}</p>
-                </div>
-              </div>`;
+              html += `<div class=\"card turno-card\" onclick=\"selectTurnoCard(this)\" data-fecha=\"${formatDate(turno.Fecha)}\" data-hora-inicio=\"${turno.HoraInicio}\" data-hora-fin=\"${turno.HoraFin}\" data-paciente=\"${pacienteNombre}\" data-medico=\"${medicoNombre}\">\n                <div class=\"card-header\">\n                  <i class=\"fas fa-calendar-check\"></i>\n                  <div class=\"card-title\">${formatDate(turno.Fecha)} ${turno.HoraInicio}-${turno.HoraFin}</div>\n                </div>\n                <div class=\"card-body\">\n                  <p><i class=\"fas fa-user-injured\"></i> Paciente: ${pacienteNombre}</p>\n                  <p><i class=\"fas fa-user-md\"></i> Médico: ${medicoNombre}</p>\n                </div>\n              </div>`;
             });
             html += '</div>';
             showResult('read-result', html, true);
@@ -807,6 +858,36 @@ html(lang='es')
                   <p><i class="fas fa-user-md"></i> Médico: ${medicoNombre}</p>
                 </div>
               </div>`;
+            });
+            html += '</div>';
+            showResult('read-result', html, true);
+          } else {
+            showResult('read-result', `Error: ${result.message}`, false);
+          }
+        } catch (error) {
+          showResult('read-result', `Error de conexión: ${error.message}`, false);
+        }
+      }
+
+      async function getTurnosByMedicoId(idMedico) {
+        try {
+          // Aseguramos tener médicos y pacientes cargados
+          await ensureMedicosLoaded();
+          await ensurePacientesLoaded();
+
+          const response = await fetch(`/api/turnos/medico/${idMedico}`);
+          const result = await response.json();
+          if (response.ok) {
+            const medico = medicos.find(m => (m._id || m.IdMedico) == idMedico);
+            let html = `<h4><i class=\"fas fa-user-md\"></i> Mis Turnos${medico ? ' (' + medico.Nombre + ' ' + medico.Apellido + ')' : ''}:</h4><div class=\"cards-grid\">`;
+            if (result.data.length === 0) {
+              html += '<p>No hay turnos para tu cuenta.</p>';
+            }
+            result.data.slice(0, 10).forEach(turno => {
+              const paciente = pacientes.find(p => (p._id || p.IdPaciente) == turno.IdPaciente);
+              const pacienteNombre = paciente ? paciente.Nombre + ' ' + paciente.Apellido : 'N/A';
+              const medicoNombre = medico ? medico.Nombre + ' ' + medico.Apellido : 'Médico';
+              html += `<div class=\"card turno-card\" onclick=\"selectTurnoCard(this)\" data-fecha=\"${formatDate(turno.Fecha)}\" data-hora-inicio=\"${turno.HoraInicio}\" data-hora-fin=\"${turno.HoraFin}\" data-paciente=\"${pacienteNombre}\" data-medico=\"${medicoNombre}\">\n                <div class=\"card-header\">\n                  <i class=\"fas fa-calendar-check\"></i>\n                  <div class=\"card-title\">${formatDate(turno.Fecha)} ${turno.HoraInicio}-${turno.HoraFin}</div>\n                </div>\n                <div class=\"card-body\">\n                  <p><i class=\"fas fa-user-injured\"></i> Paciente: ${pacienteNombre}</p>\n                  <p><i class=\"fas fa-user-md\"></i> Médico: ${medicoNombre}</p>\n                </div>\n              </div>`;
             });
             html += '</div>';
             showResult('read-result', html, true);

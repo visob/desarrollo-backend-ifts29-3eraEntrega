@@ -87,11 +87,66 @@ router.get('/dashboard/medico', requireAuthView, async (req, res) => {
   try {
     const turnosCompletos = await Turno.getTurnosCompletos();
     const misTurnos = turnosCompletos.filter(t => t.IdMedico && t.IdMedico.toString() === user.medicoId.toString());
+    const now = new Date();
+
+    const proximos = misTurnos
+      .filter(t => {
+        // Construir fecha-hora combinada para comparar con "ahora"
+        const fechaBase = new Date(t.Fecha);
+        let dt = fechaBase;
+        if (t.HoraInicio) {
+          const y = fechaBase.getUTCFullYear();
+          const m = String(fechaBase.getUTCMonth() + 1).padStart(2, '0');
+          const d = String(fechaBase.getUTCDate()).padStart(2, '0');
+          const isoFecha = `${y}-${m}-${d}`;
+          const combinado = new Date(`${isoFecha}T${t.HoraInicio}:00`);
+          if (!isNaN(combinado)) dt = combinado;
+        }
+        return dt >= now;
+      })
+      .sort((a, b) => {
+        const fa = new Date(a.Fecha);
+        const fb = new Date(b.Fecha);
+        let da = fa;
+        let db = fb;
+        if (a.HoraInicio) {
+          const ya = fa.getUTCFullYear();
+          const ma = String(fa.getUTCMonth() + 1).padStart(2, '0');
+          const da0 = String(fa.getUTCDate()).padStart(2, '0');
+          const isoA = `${ya}-${ma}-${da0}`;
+          const ca = new Date(`${isoA}T${a.HoraInicio}:00`);
+          if (!isNaN(ca)) da = ca;
+        }
+        if (b.HoraInicio) {
+          const yb = fb.getUTCFullYear();
+          const mb = String(fb.getUTCMonth() + 1).padStart(2, '0');
+          const db0 = String(fb.getUTCDate()).padStart(2, '0');
+          const isoB = `${yb}-${mb}-${db0}`;
+          const cb = new Date(`${isoB}T${b.HoraInicio}:00`);
+          if (!isNaN(cb)) db = cb;
+        }
+        return da - db;
+      });
+
+    // Formatear la fecha sin desfase de zona horaria (usar componentes UTC)
+    const formatFechaUTC = (fecha) => {
+      const d = new Date(fecha);
+      const dd = String(d.getUTCDate()).padStart(2, '0');
+      const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const yyyy = d.getUTCFullYear();
+      return `${dd}-${mm}-${yyyy}`;
+    };
+
+    const proximosFormateados = proximos.map(t => ({
+      ...t,
+      FechaStr: formatFechaUTC(t.Fecha)
+    }));
+
     res.render('dashboardMedico', {
       title: 'Dashboard Médico',
       user,
-      turnos: misTurnos,
-      metrics: { turnos: misTurnos.length }
+      turnos: proximosFormateados,
+      metrics: { turnos: proximosFormateados.length }
     });
   } catch (error) {
     console.error('Error cargando dashboard médico:', error);
@@ -99,8 +154,7 @@ router.get('/dashboard/medico', requireAuthView, async (req, res) => {
       title: 'Dashboard Médico',
       user,
       turnos: [],
-      metrics: { turnos: 0 },
-      error: 'Error al obtener datos'
+      metrics: { turnos: 0 }
     });
   }
 });
@@ -113,11 +167,65 @@ router.get('/dashboard/paciente', requireAuthView, async (req, res) => {
   try {
     const turnosCompletos = await Turno.getTurnosCompletos();
     const misTurnos = turnosCompletos.filter(t => t.IdPaciente && t.IdPaciente.toString() === user.pacienteId.toString());
+
+    const now = new Date();
+    const proximos = misTurnos
+      .filter(t => {
+        const fechaBase = new Date(t.Fecha);
+        let dt = fechaBase;
+        if (t.HoraInicio) {
+          const y = fechaBase.getUTCFullYear();
+          const m = String(fechaBase.getUTCMonth() + 1).padStart(2, '0');
+          const d = String(fechaBase.getUTCDate()).padStart(2, '0');
+          const isoFecha = `${y}-${m}-${d}`;
+          const combinado = new Date(`${isoFecha}T${t.HoraInicio}:00`);
+          if (!isNaN(combinado)) dt = combinado;
+        }
+        return dt >= now;
+      })
+      .sort((a, b) => {
+        const fa = new Date(a.Fecha);
+        const fb = new Date(b.Fecha);
+        let da = fa;
+        let db = fb;
+        if (a.HoraInicio) {
+          const ya = fa.getUTCFullYear();
+          const ma = String(fa.getUTCMonth() + 1).padStart(2, '0');
+          const da0 = String(fa.getUTCDate()).padStart(2, '0');
+          const isoA = `${ya}-${ma}-${da0}`;
+          const ca = new Date(`${isoA}T${a.HoraInicio}:00`);
+          if (!isNaN(ca)) da = ca;
+        }
+        if (b.HoraInicio) {
+          const yb = fb.getUTCFullYear();
+          const mb = String(fb.getUTCMonth() + 1).padStart(2, '0');
+          const db0 = String(fb.getUTCDate()).padStart(2, '0');
+          const isoB = `${yb}-${mb}-${db0}`;
+          const cb = new Date(`${isoB}T${b.HoraInicio}:00`);
+          if (!isNaN(cb)) db = cb;
+        }
+        return da - db;
+      });
+
+    // Formatear fecha usando componentes UTC para evitar desfase de un día
+    const formatFechaUTC = (fecha) => {
+      const d = new Date(fecha);
+      const dd = String(d.getUTCDate()).padStart(2, '0');
+      const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const yyyy = d.getUTCFullYear();
+      return `${dd}-${mm}-${yyyy}`;
+    };
+
+    const misTurnosFormateados = proximos.map(t => ({
+      ...t,
+      FechaStr: formatFechaUTC(t.Fecha)
+    }));
+
     res.render('dashboardPaciente', {
       title: 'Mi Dashboard',
       user,
-      turnos: misTurnos,
-      metrics: { turnos: misTurnos.length }
+      turnos: misTurnosFormateados,
+      metrics: { turnos: misTurnosFormateados.length }
     });
   } catch (error) {
     console.error('Error cargando dashboard paciente:', error);

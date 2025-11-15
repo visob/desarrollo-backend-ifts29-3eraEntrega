@@ -109,12 +109,12 @@ html(lang='es')
                     |  Paciente: #{t.Paciente}
                   p
                     i.fas.fa-calendar
-                    |  Fecha: #{t.Fecha} · Horario: #{t.HoraInicio} - #{t.HoraFin}
+                    |  Fecha: #{t.FechaStr} · Horario: #{t.HoraInicio} - #{t.HoraFin}
                   p
                     i.fas.fa-notes-medical
                     |  Especialidad: #{t.Especialidad}
           else
-            p.page-sub No hay turnos asignados.
+            p.page-sub No tiene turnos próximos.
     script.
       async function logout(){
         try {
