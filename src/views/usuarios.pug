@@ -6,6 +6,8 @@ html(lang='es')
     title= title
     link(rel='stylesheet', href='https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap')
     link(rel='stylesheet', href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css')
+    include partials/layoutStyles.pug
+    include partials/headerModule.pug
     include partials/adminSidebarStyles.pug
     style.
       /* Extensiones propias de Usuarios (manteniendo plantilla admin) */
@@ -44,15 +46,7 @@ html(lang='es')
 
     .main
       .container
-        .header-left
-          i.fas.fa-users-cog
-          h1.page-title Gestión de Usuarios
-          p.page-sub Desarrollo Backend - Grupo 4
-          if user
-            p.page-sub Bienvenido, #{user.username} · Rol: #{user.role}
-            a(href='#', onclick='logout()') Cerrar sesión
-          else
-            a(href='/login') Iniciar sesión
+        +pageHeader(user, 'Gestión de Usuarios')
 
         .actions
           if user && user.role === 'Administrativo'
@@ -205,20 +199,5 @@ html(lang='es')
           }
         } catch(error){
           showResult('create-result', 'Error de conexión: ' + error.message, false);
-        }
-      }
-
-      async function logout(){
-        try {
-          const response = await fetch('/api/auth/logout', { method: 'POST' });
-          const data = await response.json();
-          if (response.ok) {
-            localStorage.removeItem('authToken');
-            window.location.href = '/login';
-          } else {
-            alert(data.message || 'Error al cerrar sesión');
-          }
-        } catch (e) {
-          alert('Error de conexión: ' + e.message);
         }
       }

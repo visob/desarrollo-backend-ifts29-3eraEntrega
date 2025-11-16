@@ -6,66 +6,9 @@ html(lang='es')
     title= title
     link(rel='stylesheet', href='https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap')
     link(rel='stylesheet', href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css')
+    include partials/layoutStyles.pug
+    include partials/headerModule.pug
     style.
-      body {
-        font-family: 'Inter', sans-serif;
-        margin: 0;
-        padding: 24px;
-        background: linear-gradient(135deg, #f6fbff, #e9f6ff);
-        color: #0f4c81;
-        display: flex;
-        min-height: 100vh;
-      }
-      .sidebar {
-        width: 80px;
-        background: linear-gradient(180deg, rgba(6,40,60,0.95), rgba(5,34,54,0.95));
-        color: white;
-        border-radius: 12px;
-        padding: 20px 12px;
-        display:flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 18px;
-        box-shadow: 0 12px 30px rgba(2,6,23,0.12);
-        position: sticky;
-        top: 24px;
-        height: calc(100vh - 48px);
-      }
-      .logo {
-        width: 44px;
-        height: 44px;
-        border-radius: 10px;
-        background: linear-gradient(135deg,#0b74b6,#0b4fa0);
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        font-weight:700;
-      }
-      .sidebar nav a {
-        width: 52px;
-        height: 52px;
-        border-radius: 10px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        color: rgba(255,255,255,0.9);
-        text-decoration: none;
-        font-size: 1.2em;
-        transition: transform .18s ease, box-shadow .18s ease;
-      }
-      .sidebar nav a:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 10px 26px rgba(4,30,60,0.28);
-      }
-      .main { flex: 1; margin-left: 24px; }
-      .container {
-        background: rgba(255,255,255,0.75);
-        padding: 28px;
-        border-radius: 16px;
-        box-shadow: 0 14px 40px rgba(2,6,23,0.08);
-      }
-      .header-left h1 { font-size: 1.9rem; margin: 4px 0; }
-      .page-sub { margin: 0; color: #5b7f98; }
       .top-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 16px; margin-top: 22px; }
       .metric-card { background: linear-gradient(135deg, rgba(239,250,255,0.9), rgba(221,238,255,0.9)); padding: 18px; border-radius: 12px; display:flex; align-items:center; justify-content: space-between; border: 1px solid rgba(12,50,80,0.04); }
       .metric-left { display:flex; gap:12px; align-items:center; }
@@ -80,14 +23,7 @@ html(lang='es')
     +sidebar(user)
     .main
       .container
-        .header-left
-          h1.page-title Dashboard Médico
-          p.page-sub Mis turnos programados
-          if user
-            p.page-sub Bienvenido, #{user.username} · Rol: #{user.role}
-            a(href='#', onclick='logout()') Cerrar sesión
-          else
-            a(href='/login') Iniciar sesión
+        +pageHeader(user, 'Dashboard Médico', 'Mis turnos programados')
         .top-grid
           .metric-card
             .metric-left
@@ -99,7 +35,7 @@ html(lang='es')
         .info-card
           h3
             i.fas.fa-stethoscope
-            | Turnos próximos
+            | Próximos Turnos
           if turnos && turnos.length
             ul
               each t in turnos
@@ -115,18 +51,3 @@ html(lang='es')
                     |  Especialidad: #{t.Especialidad}
           else
             p.page-sub No tiene turnos próximos.
-    script.
-      async function logout(){
-        try {
-          const response = await fetch('/api/auth/logout', { method: 'POST' });
-          const data = await response.json();
-          if (response.ok) {
-            localStorage.removeItem('authToken');
-            window.location.href = '/login';
-          } else {
-            alert(data.message || 'Error al cerrar sesión');
-          }
-        } catch (e) {
-          alert('Error de conexión: ' + e.message);
-        }
-      }

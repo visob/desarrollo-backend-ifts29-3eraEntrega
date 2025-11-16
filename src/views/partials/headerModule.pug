@@ -1,0 +1,190 @@
+//- Estilos para el header y la sección de usuario
+style.
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 28px;
+  }
+
+  .header-left h1 {
+    font-size: 2.5rem;
+    margin: 4px 0;
+  }
+
+  .header-left .clinic-name {
+    font-size: 1rem;
+    color: #5b7f98;
+    margin: 0 0 4px 0;
+  }
+
+  .header-left .page-sub {
+    font-size: 1rem;
+    color: #5b7f98;
+    margin: 4px 0;
+  }
+
+  .user-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-end;
+  }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: white;
+    padding: 10px 16px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(12,50,80,0.06);
+  }
+
+  .user-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0b74b6, #0b4fa0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .user-details {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .user-name {
+    font-weight: 600;
+    color: #0f4c81;
+    font-size: 0.95rem;
+    margin: 0;
+  }
+
+  .user-role {
+    font-size: 0.8rem;
+    color: #5b7f98;
+    margin: 2px 0 0 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .role-badge.admin {
+    background: linear-gradient(135deg, rgba(239,68,68,0.1), rgba(220,38,38,0.1));
+    color: #991b1b;
+  }
+
+  .role-badge.medico {
+    background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.1));
+    color: #065f46;
+  }
+
+  .role-badge.paciente {
+    background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(37,99,235,0.1));
+    color: #1e3a8a;
+  }
+
+  .logout-btn {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.18s ease;
+    box-shadow: 0 4px 12px rgba(239,68,68,0.2);
+  }
+
+  .logout-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(239,68,68,0.3);
+  }
+
+  .logout-btn:active {
+    transform: translateY(0);
+  }
+
+  @media (max-width: 968px) {
+    .page-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .user-section {
+      width: 100%;
+      justify-content: space-between;
+    }
+  }
+
+//- Mixin para el header
+mixin pageHeader(user, pageTitle, clinicName = 'Clínica Salud Integral', pageSub = 'Desarrollo Backend - Grupo 4')
+  .page-header
+    .header-left
+      p.clinic-name= clinicName
+      h1.page-title= pageTitle
+      p.page-sub= pageSub
+    
+    if user
+      .user-section
+        .user-info
+          .user-avatar= user.username.charAt(0).toUpperCase()
+          .user-details
+            p.user-name Bienvenido, #{user.username}
+            p.user-role
+              if user.role === 'Administrativo'
+                span.role-badge.admin
+                  i.fas.fa-user-shield
+                  | Administrativo
+              else if user.role === 'Medico'
+                span.role-badge.medico
+                  i.fas.fa-user-md
+                  | Médico
+              else if user.role === 'Paciente'
+                span.role-badge.paciente
+                  i.fas.fa-user
+                  | Paciente
+        button.logout-btn(onclick='logout()')
+          i.fas.fa-sign-out-alt
+          | Cerrar Sesión
+    else
+      a(href='/login' style='padding: 10px 20px; background: linear-gradient(135deg, #0b74b6, #0b4fa0); color: white; text-decoration: none; border-radius: 10px; font-weight: 600;') Iniciar sesión
+
+//- Script para el logout
+script.
+  async function logout(){
+    try {
+      const response = await fetch('/api/auth/logout', { method: 'POST' });
+      const data = await response.json();
+      if (response.ok) {
+        localStorage.removeItem('authToken');
+        window.location.href = '/login';
+      } else {
+        alert(data.message || 'Error al cerrar sesión');
+      }
+    } catch (e) {
+      alert('Error de conexión: ' + e.message);
+    }
+  }

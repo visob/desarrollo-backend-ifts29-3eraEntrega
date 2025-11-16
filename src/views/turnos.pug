@@ -6,93 +6,9 @@ html(lang='es')
     title= title
     link(rel='stylesheet', href='https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap')
     link(rel='stylesheet', href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css')
+    include partials/layoutStyles.pug
+    include partials/headerModule.pug
     style.
-      /* --- Estilos Base del Dashboard (Layout) --- */
-      body {
-        font-family: 'Inter', sans-serif;
-        margin: 0;
-        padding: 24px;
-        background: linear-gradient(135deg, #f6fbff, #e9f6ff);
-        color: #0f4c81;
-        display: flex;
-        min-height: 100vh;
-      }
-
-      .sidebar {
-        width: 80px;
-        background: linear-gradient(180deg, rgba(6,40,60,0.95), rgba(5,34,54,0.95));
-        color: white;
-        border-radius: 12px;
-        padding: 20px 12px;
-        display:flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 18px;
-        box-shadow: 0 12px 30px rgba(2,6,23,0.12);
-        position: sticky;
-        top: 24px;
-        height: calc(100vh - 48px);
-      }
-
-      .logo {
-        width: 44px;
-        height: 44px;
-        border-radius: 10px;
-        background: linear-gradient(135deg,#0b74b6,#0b4fa0);
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        font-weight:700;
-      }
-
-      .sidebar nav a {
-        width: 52px;
-        height: 52px;
-        border-radius: 10px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        color: rgba(255,255,255,0.9);
-        text-decoration: none;
-        font-size: 1.2em;
-        transition: transform .18s ease, box-shadow .18s ease;
-      }
-      .sidebar nav a:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 10px 26px rgba(4,30,60,0.28);
-      }
-
-      .main {
-        flex: 1;
-        margin-left: 24px;
-      }
-
-      .container {
-        background: rgba(255,255,255,0.75);
-        padding: 28px;
-        border-radius: 16px;
-        box-shadow: 0 14px 40px rgba(2,6,23,0.08);
-      }
-      
-      .header-left {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 12px;
-      }
-      .header-left i {
-        font-size: 1.9rem;
-        color: #0f4c81;
-      }
-      .header-left h1 {
-        font-size: 1.9rem;
-        margin: 4px 0;
-      }
-      .page-sub {
-        margin: 0;
-        color: #5b7f98;
-      }
-      
       /* --- Estilos de tarjetas reutilizables --- */
       .cards-grid {
         display: grid;
@@ -290,17 +206,7 @@ html(lang='es')
 
     .main
       .container
-        .header-left
-          i.fas.fa-calendar-check
-          h1.page-title Gestión de Turnos
-          p.page-sub Desarrollo Backend - Grupo 4
-          if user
-            p.page-sub Bienvenido, #{user.username} · Rol: #{user.role}
-            a(href='#', onclick='logout()') Cerrar sesión
-          else
-            a(href='/login') Iniciar sesión
-
-        // Cabecera duplicada eliminada
+        +pageHeader(user, 'Gestión de Turnos')
         
         // --- Contenido de la página de Turnos con íconos ---
         .actions
